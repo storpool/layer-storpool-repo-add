@@ -18,8 +18,8 @@ def repo_url():
 	return 'https://debian.ringlet.net/storpool-maas'
 	
 def rdebug(s):
-	with open('/tmp/storpool-repo-add.log', 'a') as f:
-		print('{tm} {s}'.format(tm=time.ctime(), s=s), file=f)
+	with open('/tmp/storpool-charms.log', 'a') as f:
+		print('{tm} [repo-add] {s}'.format(tm=time.ctime(), s=s), file=f)
 
 def has_apt_key():
 	rdebug('has_apt_key() invoked')
