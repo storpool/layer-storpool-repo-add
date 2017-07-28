@@ -81,6 +81,11 @@ def check_status_and_well_okay_install():
 	rdebug('storpool-repo-add.update-status invoked')
 	check_and_install()
 
+@reactive.when('repo.available', 'storpool-repo-add.available')
+def notify_repo_setup(remote):
+	rdebug('whee, letting a remote unit know that our repo is available')
+	remote.configure(True)
+
 ### @when('apache.available', 'database.available')
 ### def setup_vanilla(mysql):
 ###     render(source='vanilla_config.php',
