@@ -1,11 +1,6 @@
-name: vanilla
-summary: Vanilla is an open-source, pluggable, themeable, multi-lingual forum.
-maintainer: Your Name <your@email.tld>
+name: storpool-repo-add
+summary: Add the APT repository for the StorPool MAAS-related packages
+maintainer: StorPool <support@storpool.com>
 description: |
-  Vanilla is designed to deploy and grow small communities to scale.
-  This charm deploys Vanilla Forums as outlined by the Vanilla Forums installation guide.
-tags:
-  - social
-requires:
-  database:
-    interface: mysql
+  FIXME: write something about this.
+  This charm adds an APT repository and its public key and stuff.
