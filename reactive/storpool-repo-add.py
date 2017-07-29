@@ -1,12 +1,7 @@
 from __future__ import print_function
 
-import pwd
-import os
 import time
 import subprocess
-
-#from charmhelpers.core.hookenv import status_set
-#from charmhelpers.core.templating import render
 
 from charms import reactive
 from charmhelpers.core import hookenv
@@ -62,9 +57,9 @@ def check_and_install():
 	if not has_apt_repo():
 		install_apt_repo()
 
-	hookenv.status_set('active', '')
-	if not reactive.is_state('storpool-repo-add.available'):
-		reactive.set_state('storpool-repo-add.available')
+	hookenv.status_set('maintenance', '')
+
+	reactive.set_state('storpool-repo-add.available')
 
 @reactive.hook('install')
 def install():
@@ -80,42 +75,3 @@ def upgrade():
 def check_status_and_well_okay_install():
 	rdebug('storpool-repo-add.update-status invoked')
 	check_and_install()
-
-@reactive.when('repo.available', 'storpool-repo-add.available')
-def notify_repo_setup(remote):
-	rdebug('whee, letting a remote unit know that our repo is available')
-	remote.configure(True)
-
-### @when('apache.available', 'database.available')
-### def setup_vanilla(mysql):
-###     render(source='vanilla_config.php',
-###            target='/var/www/vanilla/conf/config.php',
-###            owner='www-data',
-###            perms=0o775,
-###            context={
-###                'db': mysql,
-###            })
-###     uid = pwd.getpwnam('www-data').pw_uid
-###     os.chown('/var/www/vanilla/cache', uid, -1)
-###     os.chown('/var/www/vanilla/uploads', uid, -1)
-###     set_state('apache.start')
-###     status_set('maintenance', 'Starting Apache')
-### 
-### 
-### @when('apache.available')
-### @when_not('database.connected')
-### def missing_mysql():
-###     remove_state('apache.start')
-###     status_set('blocked', 'Please add relation to MySQL')
-### 
-### 
-### @when('database.connected')
-### @when_not('database.available')
-### def waiting_mysql(mysql):
-###     remove_state('apache.start')
-###     status_set('waiting', 'Waiting for MySQL')
-### 
-### 
-### @when('apache.started')
-### def started():
-###     status_set('active', 'Ready')

@@ -3,7 +3,4 @@ summary: Add the APT repository for the StorPool MAAS-related packages
 maintainer: StorPool <support@storpool.com>
 description: |
   FIXME: write something about this.
-  This charm adds an APT repository and its public key and stuff.
-provides:
-  repo:
-    interface: storpool-repo
+  This layer adds an APT repository and its public key and stuff.
