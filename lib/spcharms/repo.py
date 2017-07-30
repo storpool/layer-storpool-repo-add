@@ -128,7 +128,7 @@ def record_packages(names):
 
 def uninstall_recorded_packages():
 	try:
-		with open(pkg_record_file(), 'a') as f:
+		with open(pkg_record_file(), 'r') as f:
 			names = sorted(set(list(filter(
 				lambda s: len(s) > 0,
 				map(
