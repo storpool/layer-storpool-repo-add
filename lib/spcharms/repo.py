@@ -1,6 +1,8 @@
 import re
 import subprocess
 
+from charmhelpers.core import hookenv
+
 class StorPoolRepoException(Exception):
 	pass
 
@@ -116,3 +118,29 @@ def install_packages(requested):
 		return (None, apt_install(to_install))
 	except Exception as e:
 		return ('Could not install the "{names}" packages: {e}'.format(names=sorted(to_install), e=e), None)
+
+def pkg_record_file():
+	return '/var/lib/' + hookenv.charm_name() + '.packages'
+
+def record_packages(names):
+	with open(pkg_record_file(), 'a') as f:
+		print('\n'.join(names), file=f)
+
+def uninstall_recorded_packages():
+	try:
+		with open(pkg_record_file(), 'a') as f:
+			names = sorted(set(list(filter(
+				lambda s: len(s) > 0,
+				map(
+					lambda d: d.rstrip(),
+					f.readlines()
+				)
+			))))
+			if names:
+				cmd = ['apt-get', 'remove', '-y', '--']
+				cmd.extend(names)
+				subprocess.call(cmd)
+
+		os.remove(pkg_record_file())
+	except Exception as e:
+		pass
