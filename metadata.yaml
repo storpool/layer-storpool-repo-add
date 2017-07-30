@@ -1,4 +1,4 @@
-name: storpool-repo-add
+name: layer-storpool-repo-add
 summary: Add the APT repository for the StorPool MAAS-related packages
 maintainer: StorPool <support@storpool.com>
 description: |
