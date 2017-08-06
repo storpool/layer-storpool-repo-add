@@ -144,3 +144,10 @@ def uninstall_recorded_packages():
 		os.remove(pkg_record_file())
 	except Exception as e:
 		pass
+
+def list_package_files(name):
+	files_b = subprocess.check_output(['dpkg', '-L', '--', name])
+	return sorted(filter(
+		lambda s: len(s) > 0,
+		files_b.decode().split('\n')
+	))
