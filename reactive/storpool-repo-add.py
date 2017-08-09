@@ -6,6 +6,8 @@ import subprocess
 from charms import reactive
 from charmhelpers.core import hookenv
 
+from spcharms import repo as sprepo
+
 def key_data():
 	return 'pub:-:2048:1:7FF335CEB2E5AAA2:'
 
@@ -75,3 +77,17 @@ def upgrade():
 def check_status_and_well_okay_install():
 	rdebug('storpool-repo-add.update-status invoked')
 	check_and_install()
+
+@reactive.when('storpool-repo-add.stop')
+@reactive.when_not('storpool-repo-add.stopped')
+def stop():
+	rdebug('storpool-repo-add stopping as requested')
+	reactive.remove_state('storpool-repo-add.stop')
+	hookenv.status_set('maintenance', 'checking if any OS packages need to be removed')
+	try:
+		sprepo.uninstall_recorded_packages()
+		reactive.set_state('storpool-repo-add.stopped')
+		hookenv.status_set('maintenance', '')
+	except Exception as e:
+		rdebug('could not uninstall the recorded packages: {e}'.format(e=e))
+		hookenv.status_set('maintenance', 'failed to check for and/or remove OS packages')

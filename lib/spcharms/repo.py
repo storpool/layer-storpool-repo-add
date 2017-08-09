@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 
@@ -122,28 +123,51 @@ def install_packages(requested):
 def pkg_record_file():
 	return '/var/lib/' + hookenv.charm_name() + '.packages'
 
+def charm_install_flag_dir():
+	return '/var/lib/storpool/install-charms'
+
+def charm_install_flag_file():
+	return charm_install_flag_dir() + '/' + hookenv.charm_name()
+
+def charm_install_list_file():
+	return '/var/lib/storpool/install-charms.txt'
+
 def record_packages(names):
-	with open(pkg_record_file(), 'a') as f:
-		print('\n'.join(names), file=f)
+	if not os.path.isdir('/var/lib/storpool'):
+		os.mkdir('/var/lib/storpool', mode=0o700)
+	if not os.path.isdir('/var/lib/storpool/install-charms'):
+		os.mkdir('/var/lib/storpool/install-charms', mode=0o700)
+	with open(charm_install_flag_file(), mode='w') as flagf:
+		pass
+	with open(charm_install_list_file(), mode='a') as listf:
+		print('\n'.join(names), file=listf)
 
 def uninstall_recorded_packages():
 	try:
-		with open(pkg_record_file(), 'r') as f:
-			names = sorted(set(list(filter(
-				lambda s: len(s) > 0,
-				map(
-					lambda d: d.rstrip(),
-					f.readlines()
-				)
-			))))
-			if names:
-				cmd = ['apt-get', 'remove', '-y', '--']
-				cmd.extend(names)
-				subprocess.call(cmd)
-
-		os.remove(pkg_record_file())
+		os.unlink(charm_install_flag_file())
 	except Exception as e:
 		pass
+	
+	if not os.path.isdir(charm_install_flag_dir()) or \
+	   not list(filter(
+		lambda e: e.is_file(),
+		os.scandir(charm_install_flag_dir())
+	   )):
+		if os.path.isfile(charm_install_list_file()):
+			with open(charm_install_list_file(), 'r') as listf:
+				names = sorted(set(list(filter(
+					lambda s: len(s) > 0,
+					map(
+						lambda d: d.rstrip(),
+						listf.readlines()
+					)
+				))))
+				if names:
+					cmd = ['apt-get', 'remove', '-y', '--']
+					cmd.extend(names)
+					subprocess.call(cmd)
+
+			os.remove(charm_install_list_file())
 
 def list_package_files(name):
 	files_b = subprocess.check_output(['dpkg', '-L', '--', name])
