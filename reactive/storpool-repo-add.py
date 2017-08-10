@@ -43,12 +43,15 @@ def install_apt_key():
 	rdebug('about to invoke apt-key add {keyfile}'.format(keyfile=keyfile))
 	subprocess.check_call(['apt-key', 'add', keyfile])
 
+def apt_update():
+	rdebug('invoking apt-get update')
+	subprocess.check_call(['apt-get', 'update'])
+
 def install_apt_repo():
 	rdebug('install_apt_repo() invoked')
 	rdebug('invoking add-apt-repository')
 	subprocess.check_call(['add-apt-repository', '-y', repo_url()])
-	rdebug('invoking apt-get update')
-	subprocess.check_call(['apt-get', 'update'])
+	apt_update()
 
 def check_and_install():
 	hookenv.status_set('maintenance', 'checking for the APT key')
@@ -67,11 +70,13 @@ def check_and_install():
 def install():
 	rdebug('storpool-repo-add.install invoked')
 	check_and_install()
+	apt_update()
 
 @reactive.hook('upgrade-charm')
 def upgrade():
 	rdebug('storpool-repo-add.upgrade-charm invoked')
 	check_and_install()
+	apt_update()
 
 @reactive.hook('update-status')
 def check_status_and_well_okay_install():
