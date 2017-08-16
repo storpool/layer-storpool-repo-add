@@ -1,0 +1,5 @@
+options:
+  storpool_repo_url:
+    type: string
+    description: The location of the StorPool APT repostitory.
+    default: https://debian.ringlet.net/storpool-maas

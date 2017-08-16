@@ -12,7 +12,7 @@ def key_data():
 	return 'pub:-:2048:1:7FF335CEB2E5AAA2:'
 
 def repo_url():
-	return 'https://debian.ringlet.net/storpool-maas'
+	return hookenv.config().get('storpool_repo_url')
 	
 def rdebug(s):
 	with open('/tmp/storpool-charms.log', 'a') as f:
@@ -43,51 +43,126 @@ def install_apt_key():
 	rdebug('about to invoke apt-key add {keyfile}'.format(keyfile=keyfile))
 	subprocess.check_call(['apt-key', 'add', keyfile])
 
-def apt_update():
-	rdebug('invoking apt-get update')
-	subprocess.check_call(['apt-get', 'update'])
-
 def install_apt_repo():
 	rdebug('install_apt_repo() invoked')
 	rdebug('invoking add-apt-repository')
 	subprocess.check_call(['add-apt-repository', '-y', repo_url()])
-	apt_update()
+	reactive.set_state('storpool-repo-add.update-apt')
+	reactive.remove_state('storpool-repo-add.updated-apt')
 
-def check_and_install():
+def report_no_config():
+	rdebug('no StorPool configuration yet')
+	hookenv.status_set('maintenance', 'waiting for the StorPool configuration')
+
+@reactive.when('storpool-repo-add.install-apt-key')
+@reactive.when_not('storpool-repo-add.configured')
+def no_config_for_apt_key():
+	report_no_config()
+
+@reactive.when('storpool-repo-add.install-apt-repo')
+@reactive.when_not('storpool-repo-add.configured')
+def no_config_for_apt_repo():
+	report_no_config()
+
+@reactive.when('storpool-repo-add.update-apt')
+@reactive.when_not('storpool-repo-add.configured')
+def no_config_for_apt_update():
+	report_no_config()
+
+@reactive.when('storpool-repo-add.configured')
+@reactive.when('storpool-repo-add.install-apt-key')
+@reactive.when_not('storpool-repo-add.installed-apt-key')
+def do_install_apt_key():
+	rdebug('install-apt-key invoked')
 	hookenv.status_set('maintenance', 'checking for the APT key')
+
 	if not has_apt_key():
 		install_apt_key()
 
+	rdebug('install-apt-key seems fine')
+	hookenv.status_set('maintenance', '')
+	reactive.set_state('storpool-repo-add.installed-apt-key')
+
+@reactive.when('storpool-repo-add.configured')
+@reactive.when('storpool-repo-add.install-apt-repo')
+@reactive.when_not('storpool-repo-add.installed-apt-repo')
+def do_install_apt_repo():
+	rdebug('install-apt-repo invoked')
 	hookenv.status_set('maintenance', 'checking for the APT repository')
+
 	if not has_apt_repo():
 		install_apt_repo()
 
+	rdebug('install-apt-repo seems fine')
 	hookenv.status_set('maintenance', '')
+	reactive.set_state('storpool-repo-add.installed-apt-repo')
 
+@reactive.when('storpool-repo-add.configured')
+@reactive.when('storpool-repo-add.update-apt')
+@reactive.when_not('storpool-repo-add.updated-apt')
+def do_update_apt():
+	rdebug('invoking apt-get update')
+	hookenv.status_set('maintenance', 'updating the APT cache')
+
+	subprocess.check_call(['apt-get', 'update'])
+
+	rdebug('update-apt seems fine')
+	hookenv.status_set('maintenance', '')
+	reactive.set_state('storpool-repo-add.updated-apt')
+
+	# And, finally, the others can do stuff, too
 	reactive.set_state('storpool-repo-add.available')
+
+def trigger_check_and_install():
+	reactive.set_state('storpool-repo-add.install-apt-key')
+	reactive.set_state('storpool-repo-add.install-apt-repo')
+	reactive.remove_state('storpool-repo-add.installed-apt-key')
+	reactive.remove_state('storpool-repo-add.installed-apt-repo')
+
+def trigger_check_install_and_update():
+	trigger_check_and_install()
+	reactive.set_state('storpool-repo-add.update-apt')
+	reactive.remove_state('storpool-repo-add.updated-apt')
 
 @reactive.hook('install')
 def install():
 	rdebug('storpool-repo-add.install invoked')
-	check_and_install()
-	apt_update()
+	trigger_check_install_and_update()
 
 @reactive.hook('upgrade-charm')
 def upgrade():
 	rdebug('storpool-repo-add.upgrade-charm invoked')
-	check_and_install()
-	apt_update()
+	reactive.remove_state('storpool-repo-add.configured')
+	trigger_check_install_and_update()
+
+@reactive.hook('config-changed')
+def try_config():
+	rdebug('config-changed')
+	config = hookenv.config()
+
+	repo_url = config.get('storpool_repo_url', None)
+	if repo_url is None:
+		rdebug('no repository URL set in the config yet')
+		reactive.remove_state('storpool-repo-add.configured')
+	else:
+		rdebug('got a repository URL: {url}'.format(url=repo_url))
+		reactive.set_state('storpool-repo-add.configured')
 
 @reactive.hook('update-status')
 def check_status_and_well_okay_install():
 	rdebug('storpool-repo-add.update-status invoked')
-	check_and_install()
+	reactive.set_state('storpool-repo-add.check-and-install')
+	trigger_check_and_install()
 
 @reactive.when('storpool-repo-add.stop')
 @reactive.when_not('storpool-repo-add.stopped')
 def stop():
 	rdebug('storpool-repo-add stopping as requested')
 	reactive.remove_state('storpool-repo-add.stop')
+	reactive.remove_state('storpool-repo-add.install-apt-key')
+	reactive.remove_state('storpool-repo-add.install-apt-repo')
+	reactive.remove_state('storpool-repo-add.update-apt')
+	reactive.remove_state('storpool-repo-add.configured')
 	hookenv.status_set('maintenance', 'checking if any OS packages need to be removed')
 	try:
 		sprepo.uninstall_recorded_packages()
