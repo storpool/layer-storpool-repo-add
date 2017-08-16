@@ -52,7 +52,8 @@ def install_apt_repo():
 
 def report_no_config():
 	rdebug('no StorPool configuration yet')
-	hookenv.status_set('maintenance', 'waiting for the StorPool configuration')
+	if hookenv.status_get() != 'active':
+		hookenv.status_set('maintenance', 'waiting for the StorPool configuration')
 
 @reactive.when('storpool-repo-add.install-apt-key')
 @reactive.when_not('storpool-repo-add.configured')
@@ -74,13 +75,15 @@ def no_config_for_apt_update():
 @reactive.when_not('storpool-repo-add.installed-apt-key')
 def do_install_apt_key():
 	rdebug('install-apt-key invoked')
-	hookenv.status_set('maintenance', 'checking for the APT key')
+	if hookenv.status_get() != 'active':
+		hookenv.status_set('maintenance', 'checking for the APT key')
 
 	if not has_apt_key():
 		install_apt_key()
 
 	rdebug('install-apt-key seems fine')
-	hookenv.status_set('maintenance', '')
+	if hookenv.status_get() != 'active':
+		hookenv.status_set('maintenance', '')
 	reactive.set_state('storpool-repo-add.installed-apt-key')
 
 @reactive.when('storpool-repo-add.configured')
@@ -88,13 +91,15 @@ def do_install_apt_key():
 @reactive.when_not('storpool-repo-add.installed-apt-repo')
 def do_install_apt_repo():
 	rdebug('install-apt-repo invoked')
-	hookenv.status_set('maintenance', 'checking for the APT repository')
+	if hookenv.status_get() != 'active':
+		hookenv.status_set('maintenance', 'checking for the APT repository')
 
 	if not has_apt_repo():
 		install_apt_repo()
 
 	rdebug('install-apt-repo seems fine')
-	hookenv.status_set('maintenance', '')
+	if hookenv.status_get() != 'active':
+		hookenv.status_set('maintenance', '')
 	reactive.set_state('storpool-repo-add.installed-apt-repo')
 
 @reactive.when('storpool-repo-add.configured')
@@ -102,12 +107,14 @@ def do_install_apt_repo():
 @reactive.when_not('storpool-repo-add.updated-apt')
 def do_update_apt():
 	rdebug('invoking apt-get update')
-	hookenv.status_set('maintenance', 'updating the APT cache')
+	if hookenv.status_get() != 'active':
+		hookenv.status_set('maintenance', 'updating the APT cache')
 
 	subprocess.check_call(['apt-get', 'update'])
 
 	rdebug('update-apt seems fine')
-	hookenv.status_set('maintenance', '')
+	if hookenv.status_get() != 'active':
+		hookenv.status_set('maintenance', '')
 	reactive.set_state('storpool-repo-add.updated-apt')
 
 	# And, finally, the others can do stuff, too
