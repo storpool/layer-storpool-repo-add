@@ -104,6 +104,7 @@ def do_install_apt_repo():
 
 @reactive.when('storpool-repo-add.configured')
 @reactive.when('storpool-repo-add.update-apt')
+@reactive.when('storpool-repo-add.installed-apt-repo')
 @reactive.when_not('storpool-repo-add.updated-apt')
 def do_update_apt():
 	rdebug('invoking apt-get update')
