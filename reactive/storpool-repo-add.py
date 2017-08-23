@@ -171,11 +171,5 @@ def stop():
 	reactive.remove_state('storpool-repo-add.install-apt-repo')
 	reactive.remove_state('storpool-repo-add.update-apt')
 	reactive.remove_state('storpool-repo-add.configured')
-	hookenv.status_set('maintenance', 'checking if any OS packages need to be removed')
-	try:
-		sprepo.uninstall_recorded_packages()
-		reactive.set_state('storpool-repo-add.stopped')
-		hookenv.status_set('maintenance', '')
-	except Exception as e:
-		rdebug('could not uninstall the recorded packages: {e}'.format(e=e))
-		hookenv.status_set('maintenance', 'failed to check for and/or remove OS packages')
+	reactive.set_state('storpool-repo-add.stopped')
+	hookenv.status_set('maintenance', '')
