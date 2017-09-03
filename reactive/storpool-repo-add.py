@@ -7,6 +7,7 @@ from charms import reactive
 from charmhelpers.core import hookenv
 
 from spcharms import repo as sprepo
+from spcharms import utils as sputils
 
 def key_data():
 	return 'pub:-:2048:1:7FF335CEB2E5AAA2:'
@@ -15,8 +16,7 @@ def repo_url():
 	return hookenv.config().get('storpool_repo_url')
 	
 def rdebug(s):
-	with open('/tmp/storpool-charms.log', 'a') as f:
-		print('{tm} [repo-add] {s}'.format(tm=time.ctime(), s=s), file=f)
+	sputils.rdebug(s, prefix='repo-add')
 
 def has_apt_key():
 	rdebug('has_apt_key() invoked')
