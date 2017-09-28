@@ -1,1 +1,2 @@
+repo: https://github.com/storpool/layer-storpool-repo-add.git
 includes: ['layer:basic', 'layer:storpool-helper']
