@@ -22,7 +22,13 @@ def rdebug(s):
 
 def has_apt_key():
     rdebug('has_apt_key() invoked')
-    current = subprocess.check_output(['apt-key', 'adv', '--list-keys', '--batch', '--with-colons'])
+    current = subprocess.check_output([
+                                       'apt-key',
+                                       'adv',
+                                       '--list-keys',
+                                       '--batch',
+                                       '--with-colons'
+                                      ])
     kdata = key_data()
     return bool(list(filter(
         lambda s: s.startswith(kdata),
@@ -43,7 +49,8 @@ def has_apt_repo():
 
 def install_apt_key():
     rdebug('install_apt_key() invoked')
-    keyfile = '{charm}/templates/{fname}'.format(charm=hookenv.charm_dir(), fname='storpool-maas.key')
+    keyfile = '{charm}/templates/{fname}'.format(charm=hookenv.charm_dir(),
+                                                 fname='storpool-maas.key')
     rdebug('about to invoke apt-key add {keyfile}'.format(keyfile=keyfile))
     subprocess.check_call(['apt-key', 'add', keyfile])
 
@@ -59,7 +66,8 @@ def install_apt_repo():
 def report_no_config():
     rdebug('no StorPool configuration yet')
     if hookenv.status_get()[0] != 'active':
-        hookenv.status_set('maintenance', 'waiting for the StorPool configuration')
+        hookenv.status_set('maintenance',
+                           'waiting for the StorPool configuration')
 
 
 @reactive.when('storpool-repo-add.install-apt-key')
