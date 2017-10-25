@@ -1,12 +1,10 @@
 from __future__ import print_function
 
-import time
 import subprocess
 
 from charms import reactive
 from charmhelpers.core import hookenv
 
-from spcharms import repo as sprepo
 from spcharms import utils as sputils
 
 def key_data():
