@@ -14,7 +14,7 @@ def key_data():
 
 def repo_url():
     return hookenv.config().get('storpool_repo_url')
-    
+
 
 def rdebug(s):
     sputils.rdebug(s, prefix='repo-add')
