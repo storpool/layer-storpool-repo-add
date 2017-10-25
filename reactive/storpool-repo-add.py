@@ -1,3 +1,8 @@
+"""
+A Juju charm layer that adds the StorPool Ubuntu package repository to
+the node's APT configuration.
+"""
+
 from __future__ import print_function
 
 import subprocess
@@ -9,18 +14,30 @@ from spcharms import utils as sputils
 
 
 def key_data():
+    """
+    Hardcode the StorPool package signing key.
+    """
     return 'pub:-:2048:1:7FF335CEB2E5AAA2:'
 
 
 def repo_url():
+    """
+    Get the StorPool package repository URL from the configuration.
+    """
     return hookenv.config().get('storpool_repo_url')
 
 
 def rdebug(s):
+    """
+    Pass the diagnostic message string `s` to the central diagnostic logger.
+    """
     sputils.rdebug(s, prefix='repo-add')
 
 
 def has_apt_key():
+    """
+    Check whether the local APT installation has the StorPool signing key.
+    """
     rdebug('has_apt_key() invoked')
     current = subprocess.check_output([
                                        'apt-key',
@@ -37,6 +54,9 @@ def has_apt_key():
 
 
 def has_apt_repo():
+    """
+    Check whether the local APT installation has the StorPool repository.
+    """
     rdebug('has_apt_repo() invoked')
     current = subprocess.check_output(['apt-cache', 'policy'])
     # OK, well, maybe this is better done with a regular expression...
@@ -48,6 +68,9 @@ def has_apt_repo():
 
 
 def install_apt_key():
+    """
+    Add the StorPool package signing key to the local APT setup.
+    """
     rdebug('install_apt_key() invoked')
     keyfile = '{charm}/templates/{fname}'.format(charm=hookenv.charm_dir(),
                                                  fname='storpool-maas.key')
@@ -56,6 +79,9 @@ def install_apt_key():
 
 
 def install_apt_repo():
+    """
+    Add the StorPool package repository to the local APT setup.
+    """
     rdebug('install_apt_repo() invoked')
     rdebug('invoking add-apt-repository')
     subprocess.check_call(['add-apt-repository', '-y', repo_url()])
@@ -64,6 +90,9 @@ def install_apt_repo():
 
 
 def report_no_config():
+    """
+    Note that the `storpool_repo_url` has not been set yet.
+    """
     rdebug('no StorPool configuration yet')
     if hookenv.status_get()[0] != 'active':
         hookenv.status_set('maintenance',
@@ -73,18 +102,27 @@ def report_no_config():
 @reactive.when('storpool-repo-add.install-apt-key')
 @reactive.when_not('storpool-repo-add.configured')
 def no_config_for_apt_key():
+    """
+    Note that the `storpool_repo_url` has not been set yet.
+    """
     report_no_config()
 
 
 @reactive.when('storpool-repo-add.install-apt-repo')
 @reactive.when_not('storpool-repo-add.configured')
 def no_config_for_apt_repo():
+    """
+    Note that the `storpool_repo_url` has not been set yet.
+    """
     report_no_config()
 
 
 @reactive.when('storpool-repo-add.update-apt')
 @reactive.when_not('storpool-repo-add.configured')
 def no_config_for_apt_update():
+    """
+    Note that the `storpool_repo_url` has not been set yet.
+    """
     report_no_config()
 
 
@@ -92,6 +130,9 @@ def no_config_for_apt_update():
 @reactive.when('storpool-repo-add.install-apt-key')
 @reactive.when_not('storpool-repo-add.installed-apt-key')
 def do_install_apt_key():
+    """
+    Check and, if necessary, install the StorPool package signing key.
+    """
     rdebug('install-apt-key invoked')
     if hookenv.status_get()[0] != 'active':
         hookenv.status_set('maintenance', 'checking for the APT key')
@@ -109,6 +150,9 @@ def do_install_apt_key():
 @reactive.when('storpool-repo-add.install-apt-repo')
 @reactive.when_not('storpool-repo-add.installed-apt-repo')
 def do_install_apt_repo():
+    """
+    Check and, if necessary, add the StorPool repository.
+    """
     rdebug('install-apt-repo invoked')
     if hookenv.status_get()[0] != 'active':
         hookenv.status_set('maintenance', 'checking for the APT repository')
@@ -127,6 +171,9 @@ def do_install_apt_repo():
 @reactive.when('storpool-repo-add.installed-apt-repo')
 @reactive.when_not('storpool-repo-add.updated-apt')
 def do_update_apt():
+    """
+    Invoke `apt-get update` to fetch data from the StorPool repository.
+    """
     rdebug('invoking apt-get update')
     if hookenv.status_get()[0] != 'active':
         hookenv.status_set('maintenance', 'updating the APT cache')
@@ -143,6 +190,9 @@ def do_update_apt():
 
 
 def trigger_check_and_install():
+    """
+    Force a check and installation of the key and the repository.
+    """
     reactive.set_state('storpool-repo-add.install-apt-key')
     reactive.set_state('storpool-repo-add.install-apt-repo')
     reactive.remove_state('storpool-repo-add.installed-apt-key')
@@ -150,6 +200,9 @@ def trigger_check_and_install():
 
 
 def trigger_check_install_and_update():
+    """
+    Force a full check-install-update cycle.
+    """
     trigger_check_and_install()
     reactive.set_state('storpool-repo-add.update-apt')
     reactive.remove_state('storpool-repo-add.updated-apt')
@@ -157,12 +210,18 @@ def trigger_check_install_and_update():
 
 @reactive.hook('install')
 def install():
+    """
+    Run a full check-install-update cycle upon first installation.
+    """
     rdebug('storpool-repo-add.install invoked')
     trigger_check_install_and_update()
 
 
 @reactive.hook('upgrade-charm')
 def upgrade():
+    """
+    Run a full check-install-update cycle upon charm upgrade.
+    """
     rdebug('storpool-repo-add.upgrade-charm invoked')
     reactive.remove_state('storpool-repo-add.configured')
     trigger_check_install_and_update()
@@ -170,6 +229,9 @@ def upgrade():
 
 @reactive.hook('config-changed')
 def try_config():
+    """
+    Check if the configuration has been fully set.
+    """
     rdebug('config-changed')
     config = hookenv.config()
 
@@ -184,6 +246,10 @@ def try_config():
 
 @reactive.hook('update-status')
 def check_status_and_well_okay_install():
+    """
+    Periodically check for the key and the repository, but do not
+    necessarily force an update.
+    """
     rdebug('storpool-repo-add.update-status invoked')
     reactive.set_state('storpool-repo-add.check-and-install')
     trigger_check_and_install()
@@ -192,6 +258,9 @@ def check_status_and_well_okay_install():
 @reactive.when('storpool-repo-add.stop')
 @reactive.when_not('storpool-repo-add.stopped')
 def stop():
+    """
+    Clean up and no longer attempt to install anything.
+    """
     rdebug('storpool-repo-add stopping as requested')
     reactive.remove_state('storpool-repo-add.stop')
     reactive.remove_state('storpool-repo-add.install-apt-key')
