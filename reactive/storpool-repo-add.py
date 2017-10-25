@@ -7,14 +7,18 @@ from charmhelpers.core import hookenv
 
 from spcharms import utils as sputils
 
+
 def key_data():
     return 'pub:-:2048:1:7FF335CEB2E5AAA2:'
+
 
 def repo_url():
     return hookenv.config().get('storpool_repo_url')
     
+
 def rdebug(s):
     sputils.rdebug(s, prefix='repo-add')
+
 
 def has_apt_key():
     rdebug('has_apt_key() invoked')
@@ -24,6 +28,7 @@ def has_apt_key():
         lambda s: s.startswith(kdata),
         current.decode().split('\n')
     )))
+
 
 def has_apt_repo():
     rdebug('has_apt_repo() invoked')
@@ -35,11 +40,13 @@ def has_apt_repo():
         current.decode().split('\n')
     )))
 
+
 def install_apt_key():
     rdebug('install_apt_key() invoked')
     keyfile = '{charm}/templates/{fname}'.format(charm=hookenv.charm_dir(), fname='storpool-maas.key')
     rdebug('about to invoke apt-key add {keyfile}'.format(keyfile=keyfile))
     subprocess.check_call(['apt-key', 'add', keyfile])
+
 
 def install_apt_repo():
     rdebug('install_apt_repo() invoked')
@@ -48,25 +55,30 @@ def install_apt_repo():
     reactive.set_state('storpool-repo-add.update-apt')
     reactive.remove_state('storpool-repo-add.updated-apt')
 
+
 def report_no_config():
     rdebug('no StorPool configuration yet')
     if hookenv.status_get()[0] != 'active':
         hookenv.status_set('maintenance', 'waiting for the StorPool configuration')
+
 
 @reactive.when('storpool-repo-add.install-apt-key')
 @reactive.when_not('storpool-repo-add.configured')
 def no_config_for_apt_key():
     report_no_config()
 
+
 @reactive.when('storpool-repo-add.install-apt-repo')
 @reactive.when_not('storpool-repo-add.configured')
 def no_config_for_apt_repo():
     report_no_config()
 
+
 @reactive.when('storpool-repo-add.update-apt')
 @reactive.when_not('storpool-repo-add.configured')
 def no_config_for_apt_update():
     report_no_config()
+
 
 @reactive.when('storpool-repo-add.configured')
 @reactive.when('storpool-repo-add.install-apt-key')
@@ -84,6 +96,7 @@ def do_install_apt_key():
         hookenv.status_set('maintenance', '')
     reactive.set_state('storpool-repo-add.installed-apt-key')
 
+
 @reactive.when('storpool-repo-add.configured')
 @reactive.when('storpool-repo-add.install-apt-repo')
 @reactive.when_not('storpool-repo-add.installed-apt-repo')
@@ -99,6 +112,7 @@ def do_install_apt_repo():
     if hookenv.status_get()[0] != 'active':
         hookenv.status_set('maintenance', '')
     reactive.set_state('storpool-repo-add.installed-apt-repo')
+
 
 @reactive.when('storpool-repo-add.configured')
 @reactive.when('storpool-repo-add.update-apt')
@@ -119,27 +133,32 @@ def do_update_apt():
     # And, finally, the others can do stuff, too
     reactive.set_state('storpool-repo-add.available')
 
+
 def trigger_check_and_install():
     reactive.set_state('storpool-repo-add.install-apt-key')
     reactive.set_state('storpool-repo-add.install-apt-repo')
     reactive.remove_state('storpool-repo-add.installed-apt-key')
     reactive.remove_state('storpool-repo-add.installed-apt-repo')
 
+
 def trigger_check_install_and_update():
     trigger_check_and_install()
     reactive.set_state('storpool-repo-add.update-apt')
     reactive.remove_state('storpool-repo-add.updated-apt')
+
 
 @reactive.hook('install')
 def install():
     rdebug('storpool-repo-add.install invoked')
     trigger_check_install_and_update()
 
+
 @reactive.hook('upgrade-charm')
 def upgrade():
     rdebug('storpool-repo-add.upgrade-charm invoked')
     reactive.remove_state('storpool-repo-add.configured')
     trigger_check_install_and_update()
+
 
 @reactive.hook('config-changed')
 def try_config():
@@ -154,11 +173,13 @@ def try_config():
         rdebug('got a repository URL: {url}'.format(url=repo_url))
         reactive.set_state('storpool-repo-add.configured')
 
+
 @reactive.hook('update-status')
 def check_status_and_well_okay_install():
     rdebug('storpool-repo-add.update-status invoked')
     reactive.set_state('storpool-repo-add.check-and-install')
     trigger_check_and_install()
+
 
 @reactive.when('storpool-repo-add.stop')
 @reactive.when_not('storpool-repo-add.stopped')
