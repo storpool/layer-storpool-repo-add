@@ -12,6 +12,7 @@ import subprocess
 from charms import reactive
 from charmhelpers.core import hookenv
 
+from spcharms import status as spstatus
 from spcharms import utils as sputils
 
 
@@ -122,9 +123,7 @@ def report_no_config():
     Note that the `storpool_repo_url` has not been set yet.
     """
     rdebug('no StorPool configuration yet')
-    if hookenv.status_get()[0] != 'active':
-        hookenv.status_set('maintenance',
-                           'waiting for the StorPool configuration')
+    spstatus.npset('maintenance', 'waiting for the StorPool configuration')
 
 
 @reactive.when('storpool-repo-add.install-apt-key')
@@ -162,15 +161,13 @@ def do_install_apt_key():
     Check and, if necessary, install the StorPool package signing key.
     """
     rdebug('install-apt-key invoked')
-    if hookenv.status_get()[0] != 'active':
-        hookenv.status_set('maintenance', 'checking for the APT key')
+    spstatus.npset('maintenance', 'checking for the APT key')
 
     if not has_apt_key():
         install_apt_key()
 
     rdebug('install-apt-key seems fine')
-    if hookenv.status_get()[0] != 'active':
-        hookenv.status_set('maintenance', '')
+    spstatus.npset('maintenance', '')
     reactive.set_state('storpool-repo-add.installed-apt-key')
 
 
@@ -182,15 +179,13 @@ def do_install_apt_repo():
     Check and, if necessary, add the StorPool repository.
     """
     rdebug('install-apt-repo invoked')
-    if hookenv.status_get()[0] != 'active':
-        hookenv.status_set('maintenance', 'checking for the APT repository')
+    spstatus.npset('maintenance', 'checking for the APT repository')
 
     if not has_apt_repo():
         install_apt_repo()
 
     rdebug('install-apt-repo seems fine')
-    if hookenv.status_get()[0] != 'active':
-        hookenv.status_set('maintenance', '')
+    spstatus.npset('maintenance', '')
     reactive.set_state('storpool-repo-add.installed-apt-repo')
 
 
@@ -203,14 +198,12 @@ def do_update_apt():
     Invoke `apt-get update` to fetch data from the StorPool repository.
     """
     rdebug('invoking apt-get update')
-    if hookenv.status_get()[0] != 'active':
-        hookenv.status_set('maintenance', 'updating the APT cache')
+    spstatus.npset('maintenance', 'updating the APT cache')
 
     subprocess.check_call(['apt-get', 'update'])
 
     rdebug('update-apt seems fine')
-    if hookenv.status_get()[0] != 'active':
-        hookenv.status_set('maintenance', '')
+    spstatus.npset('maintenance', '')
     reactive.set_state('storpool-repo-add.updated-apt')
 
     # And, finally, the others can do stuff, too
@@ -221,6 +214,7 @@ def trigger_check_and_install():
     """
     Force a check and installation of the key and the repository.
     """
+    spstatus.reset_unless_error()
     reactive.set_state('storpool-repo-add.install-apt-key')
     reactive.set_state('storpool-repo-add.install-apt-repo')
     reactive.remove_state('storpool-repo-add.installed-apt-key')
@@ -296,4 +290,4 @@ def stop():
     reactive.remove_state('storpool-repo-add.update-apt')
     reactive.remove_state('storpool-repo-add.configured')
     reactive.set_state('storpool-repo-add.stopped')
-    hookenv.status_set('maintenance', '')
+    spstatus.npset('maintenance', '')
