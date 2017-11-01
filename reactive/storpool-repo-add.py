@@ -246,6 +246,7 @@ def upgrade():
     Run a full check-install-update cycle upon charm upgrade.
     """
     rdebug('storpool-repo-add.upgrade-charm invoked')
+    spstatus.reset_if_allowed('storpool-repo-add')
     reactive.remove_state('storpool-repo-add.configured')
     trigger_check_install_and_update()
 
@@ -256,6 +257,7 @@ def try_config():
     Check if the configuration has been fully set.
     """
     rdebug('config-changed')
+    spstatus.reset_if_allowed('storpool-repo-add')
     config = hookenv.config()
 
     repo_url = config.get('storpool_repo_url', None)
