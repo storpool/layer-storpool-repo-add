@@ -97,7 +97,8 @@ def install_apt_repo():
             for line in f.readlines():
                 if 'https://debian.ringlet.net/storpool-maas' in line or \
                    'https://debian.ringlet.net/storpool-juju' in line or \
-                   'http://repo.storpool.com/storpool-maas' in line:
+                   'http://repo.storpool.com/storpool-maas' in line or \
+                   '@repo.storpool.com/storpool-maas' in line:
                     removed = removed + 1
                     continue
                 print(line, file=tempf, end='')
