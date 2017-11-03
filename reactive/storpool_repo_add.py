@@ -15,6 +15,30 @@ from charmhelpers.core import hookenv
 from spcharms import status as spstatus
 from spcharms import utils as sputils
 
+APT_CONFIG_DIR = '/etc/apt'
+APT_SOURCES_DIR = 'sources.list.d'
+APT_SOURCES_FILE = 'storpool-maas.list'
+APT_KEYRING_DIR = 'trusted.gpg.d'
+APT_KEYRING_FILE = 'storpool-maas.gpg'
+
+
+def apt_sources_list():
+    """
+    Generate the name of the APT file to store the StorPool repo data.
+    """
+    return '{dir}/{subdir}/{file}'.format(dir=APT_CONFIG_DIR,
+                                          subdir=APT_SOURCES_DIR,
+                                          file=APT_SOURCES_FILE)
+
+
+def apt_keyring():
+    """
+    Generate the name of the APT file to store the StorPool OpenPGP key.
+    """
+    return '{dir}/{subdir}/{file}'.format(dir=APT_CONFIG_DIR,
+                                          subdir=APT_KEYRING_DIR,
+                                          file=APT_KEYRING_FILE)
+
 
 def key_data():
     """
@@ -27,7 +51,7 @@ def repo_url():
     """
     Get the StorPool package repository URL from the configuration.
     """
-    return hookenv.config().get('storpool_repo_url')
+    return hookenv.config()['storpool_repo_url']
 
 
 def rdebug(s):
@@ -35,6 +59,16 @@ def rdebug(s):
     Pass the diagnostic message string `s` to the central diagnostic logger.
     """
     sputils.rdebug(s, prefix='repo-add')
+
+
+def apt_file_contents(url):
+    """
+    Generate the text that should be put into the APT sources list.
+    """
+    return {
+        'mandatory': 'deb {url} xenial main'.format(url=url),
+        'optional': 'deb-src {url} xenial main'.format(url=url),
+    }
 
 
 def has_apt_key():
@@ -61,13 +95,19 @@ def has_apt_repo():
     Check whether the local APT installation has the StorPool repository.
     """
     rdebug('has_apt_repo() invoked')
-    current = subprocess.check_output(['apt-cache', 'policy'])
-    # OK, well, maybe this is better done with a regular expression...
-    url = repo_url()
-    return bool(list(filter(
-        lambda s: s.find(url) != -1,
-        current.decode().split('\n')
-    )))
+    filename = apt_sources_list()
+    if not os.path.isfile(filename):
+        return False
+
+    contents = apt_file_contents(repo_url())
+    with open(filename, mode='r') as f:
+        found_mandatory = False
+        for line in map(lambda s: s.strip(), f.readlines()):
+            if line == contents['mandatory']:
+                found_mandatory = True
+            elif contents['optional'] not in line:
+                return False
+        return found_mandatory
 
 
 def install_apt_key():
@@ -77,8 +117,13 @@ def install_apt_key():
     rdebug('install_apt_key() invoked')
     keyfile = '{charm}/templates/{fname}'.format(charm=hookenv.charm_dir(),
                                                  fname='storpool-maas.key')
+    filename = apt_keyring()
+    dirname = os.path.dirname(filename)
+    if not os.path.isdir(dirname):
+        rdebug('- creating the {dir} directory first'.format(dir=dirname))
+        os.mkdir(dirname, 0o755)
     rdebug('about to invoke apt-key add {keyfile}'.format(keyfile=keyfile))
-    subprocess.check_call(['apt-key', 'add', keyfile])
+    subprocess.check_call(['apt-key', '--keyring', filename, 'add', keyfile])
 
 
 def install_apt_repo():
@@ -113,8 +158,23 @@ def install_apt_repo():
                        .format(sname=sname))
                 os.unlink(tempf.name)
 
-    rdebug('invoking add-apt-repository')
-    subprocess.check_call(['add-apt-repository', '-y', repo_url()])
+    contents = apt_file_contents(repo_url())
+    text = '{mandatory}\n# {optional}\n'.format(**contents)
+    filename = apt_sources_list()
+    rdebug('creating the {fname} file'.format(fname=filename))
+    rdebug('contents: {text}'.format(text=text))
+    dirname = os.path.dirname(filename)
+    if not os.path.isdir(dirname):
+        rdebug('- creating the {dir} directory first'.format(dir=dirname))
+        os.mkdir(dirname, mode=0o755)
+    with tempfile.NamedTemporaryFile(dir=dirname,
+                                     mode='w+t',
+                                     prefix='.storpool-maas.',
+                                     suffix='.list',
+                                     delete=False) as tempf:
+        print(text, file=tempf, end='', flush=True)
+        os.rename(tempf.name, filename)
+
     reactive.set_state('storpool-repo-add.update-apt')
     reactive.remove_state('storpool-repo-add.updated-apt')
 
