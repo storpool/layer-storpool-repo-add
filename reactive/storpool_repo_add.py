@@ -321,7 +321,7 @@ def try_config():
     config = hookenv.config()
 
     repo_url = config.get('storpool_repo_url', None)
-    if repo_url is None:
+    if repo_url is None or repo_url == '':
         rdebug('no repository URL set in the config yet')
         reactive.remove_state('storpool-repo-add.configured')
     else:
