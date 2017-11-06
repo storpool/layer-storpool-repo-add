@@ -8,7 +8,7 @@ import os
 import sys
 import subprocess
 import tempfile
-import testtools
+import unittest
 
 import mock
 
@@ -92,7 +92,7 @@ from reactive import storpool_repo_add as testee
 REPO_URL = 'http://jrl:no-idea@nonexistent.storpool.example.com/'
 
 
-class TestStorPoolRepoAdd(testtools.TestCase):
+class TestStorPoolRepoAdd(unittest.TestCase):
     """
     Test various aspects of the storpool-repo-add layer.
     """
