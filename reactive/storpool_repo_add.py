@@ -347,6 +347,18 @@ def stop():
     Clean up and no longer attempt to install anything.
     """
     rdebug('storpool-repo-add stopping as requested')
+
+    for fname in (apt_sources_list(), apt_keyring()):
+        if os.path.isfile(fname):
+            rdebug('- trying to remove {name}'.format(name=fname))
+            try:
+                os.unlink(fname)
+            except Exception as e:
+                rdebug('  - could not remove {name}: {e}'
+                       .format(name=fname, e=e))
+        else:
+            rdebug('- no {name} to remove'.format(name=fname))
+
     reactive.remove_state('storpool-repo-add.stop')
     reactive.remove_state('storpool-repo-add.install-apt-key')
     reactive.remove_state('storpool-repo-add.install-apt-repo')

@@ -170,6 +170,9 @@ class TestStorPoolRepoAdd(unittest.TestCase):
 
         self.check_keyfile_gpg(keydata, keyfile)
 
+        testee.stop()
+        self.assertFalse(os.path.exists(keyfile))
+
     def check_sources_list(self):
         """
         Do some basic checks that the final location of the StorPool
@@ -246,5 +249,6 @@ class TestStorPoolRepoAdd(unittest.TestCase):
         self.assertTrue(self.uncomment_deb_src(listfile))
         self.assertTrue(testee.has_apt_repo())
 
-        os.unlink(listfile)
+        testee.stop()
+        self.assertFalse(os.path.exists(listfile))
         self.assertFalse(testee.has_apt_repo())
