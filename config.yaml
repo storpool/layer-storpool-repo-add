@@ -1,5 +1,5 @@
 options:
   storpool_repo_url:
     type: string
-    description: The location of the StorPool APT repostitory.
+    description: The location of the StorPool APT repository.
     default:
