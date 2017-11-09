@@ -12,6 +12,7 @@ import subprocess
 from charms import reactive
 from charmhelpers.core import hookenv
 
+from spcharms import states as spstates
 from spcharms import status as spstatus
 from spcharms import utils as sputils
 
@@ -271,24 +272,20 @@ def do_update_apt():
     reactive.set_state('storpool-repo-add.available')
 
 
-def trigger_check_and_install():
-    """
-    Force a check and installation of the key and the repository.
-    """
-    spstatus.reset_unless_error()
-    reactive.set_state('storpool-repo-add.install-apt-key')
-    reactive.set_state('storpool-repo-add.install-apt-repo')
-    reactive.remove_state('storpool-repo-add.installed-apt-key')
-    reactive.remove_state('storpool-repo-add.installed-apt-repo')
-
-
-def trigger_check_install_and_update():
-    """
-    Force a full check-install-update cycle.
-    """
-    trigger_check_and_install()
-    reactive.set_state('storpool-repo-add.update-apt')
-    reactive.remove_state('storpool-repo-add.updated-apt')
+STATES_REDO = {
+    'set': [
+        'storpool-repo-add.install-apt-key',
+        'storpool-repo-add.install-apt-repo',
+        'storpool-repo-add.update-apt',
+        'storpool-repo-add.configure',
+    ],
+    'unset': [
+        'storpool-repo-add.installed-apt-key',
+        'storpool-repo-add.installed-apt-repo',
+        'storpool-repo-add.updated-apt',
+        'storpool-repo-add.configured',
+    ],
+}
 
 
 @reactive.hook('install')
@@ -297,26 +294,21 @@ def install():
     Run a full check-install-update cycle upon first installation.
     """
     rdebug('storpool-repo-add.install invoked')
-    trigger_check_install_and_update()
+    spstates.register('storpool-repo-add', {
+        'config-changed': STATES_REDO,
+        'upgrade-charm': STATES_REDO,
+    })
+    spstates.handle_single(STATES_REDO)
 
 
-@reactive.hook('upgrade-charm')
-def upgrade():
-    """
-    Run a full check-install-update cycle upon charm upgrade.
-    """
-    rdebug('storpool-repo-add.upgrade-charm invoked')
-    spstatus.reset_if_allowed('storpool-repo-add')
-    reactive.remove_state('storpool-repo-add.configured')
-    trigger_check_install_and_update()
-
-
-@reactive.hook('config-changed')
+@reactive.when('storpool-repo-add.configure')
+@reactive.when_not('storpool-repo-add.configured')
 def try_config():
     """
     Check if the configuration has been fully set.
     """
-    rdebug('config-changed')
+    rdebug('reconfigure')
+    reactive.remove_state('storpool-repo-add.configure')
     spstatus.reset_if_allowed('storpool-repo-add')
     config = hookenv.config()
 
@@ -327,17 +319,6 @@ def try_config():
     else:
         rdebug('got a repository URL: {url}'.format(url=repo_url))
         reactive.set_state('storpool-repo-add.configured')
-
-
-@reactive.hook('update-status')
-def check_status_and_well_okay_install():
-    """
-    Periodically check for the key and the repository, but do not
-    necessarily force an update.
-    """
-    rdebug('storpool-repo-add.update-status invoked')
-    reactive.set_state('storpool-repo-add.check-and-install')
-    trigger_check_and_install()
 
 
 @reactive.when('storpool-repo-add.stop')
@@ -359,10 +340,9 @@ def stop():
         else:
             rdebug('- no {name} to remove'.format(name=fname))
 
+    for state in STATES_REDO['set'] + STATES_REDO['unset']:
+        reactive.remove_state(state)
+
     reactive.remove_state('storpool-repo-add.stop')
-    reactive.remove_state('storpool-repo-add.install-apt-key')
-    reactive.remove_state('storpool-repo-add.install-apt-repo')
-    reactive.remove_state('storpool-repo-add.update-apt')
-    reactive.remove_state('storpool-repo-add.configured')
     reactive.set_state('storpool-repo-add.stopped')
     spstatus.npset('maintenance', '')
