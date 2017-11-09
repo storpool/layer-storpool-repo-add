@@ -12,6 +12,7 @@ import subprocess
 from charms import reactive
 from charmhelpers.core import hookenv
 
+from spcharms import config as spconfig
 from spcharms import states as spstates
 from spcharms import status as spstatus
 from spcharms import utils as sputils
@@ -52,7 +53,7 @@ def repo_url():
     """
     Get the StorPool package repository URL from the configuration.
     """
-    return hookenv.config()['storpool_repo_url']
+    return spconfig.m()['storpool_repo_url']
 
 
 def rdebug(s):
@@ -301,6 +302,7 @@ def install():
     spstates.handle_single(STATES_REDO)
 
 
+@reactive.when('storpool-helper.config-set')
 @reactive.when('storpool-repo-add.configure')
 @reactive.when_not('storpool-repo-add.configured')
 def try_config():
@@ -310,7 +312,7 @@ def try_config():
     rdebug('reconfigure')
     reactive.remove_state('storpool-repo-add.configure')
     spstatus.reset_if_allowed('storpool-repo-add')
-    config = hookenv.config()
+    config = spconfig.m()
 
     repo_url = config.get('storpool_repo_url', None)
     if repo_url is None or repo_url == '':
