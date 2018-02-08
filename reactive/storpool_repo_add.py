@@ -181,41 +181,6 @@ def install_apt_repo():
     reactive.remove_state('storpool-repo-add.updated-apt')
 
 
-def report_no_config():
-    """
-    Note that the `storpool_repo_url` has not been set yet.
-    """
-    rdebug('no StorPool configuration yet')
-    spstatus.npset('maintenance', 'waiting for the StorPool configuration')
-
-
-@reactive.when('storpool-repo-add.install-apt-key')
-@reactive.when_not('storpool-repo-add.configured')
-def no_config_for_apt_key():
-    """
-    Note that the `storpool_repo_url` has not been set yet.
-    """
-    report_no_config()
-
-
-@reactive.when('storpool-repo-add.install-apt-repo')
-@reactive.when_not('storpool-repo-add.configured')
-def no_config_for_apt_repo():
-    """
-    Note that the `storpool_repo_url` has not been set yet.
-    """
-    report_no_config()
-
-
-@reactive.when('storpool-repo-add.update-apt')
-@reactive.when_not('storpool-repo-add.configured')
-def no_config_for_apt_update():
-    """
-    Note that the `storpool_repo_url` has not been set yet.
-    """
-    report_no_config()
-
-
 @reactive.when('storpool-repo-add.configured')
 @reactive.when('storpool-repo-add.install-apt-key')
 @reactive.when_not('storpool-repo-add.installed-apt-key')
